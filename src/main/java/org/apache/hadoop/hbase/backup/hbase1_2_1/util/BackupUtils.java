@@ -60,6 +60,7 @@ public final class BackupUtils {
     /**
      * Loop through the RS log timestamp map for the tables, for each RS, find the min timestamp value
      * for the RS among the tables.
+     *
      * @param rsLogTimestampMap timestamp map
      * @return the min timestamp of each RS
      */
@@ -98,9 +99,10 @@ public final class BackupUtils {
     /**
      * copy out Table RegionInfo into incremental backup image need to consider move this logic into
      * HBackupFileSystem
-     * @param conn connection
+     *
+     * @param conn       connection
      * @param backupInfo backup info
-     * @param conf configuration
+     * @param conf       configuration
      * @throws IOException exception
      */
     public static void copyTableRegionInfo(Connection conn, BackupInfo backupInfo, Configuration conf)
@@ -159,6 +161,7 @@ public final class BackupUtils {
 
     /**
      * Parses hostname:port from WAL file path
+     *
      * @param p path to WAL file
      * @return hostname:port
      */
@@ -183,6 +186,7 @@ public final class BackupUtils {
 
     /**
      * Returns WAL file name
+     *
      * @param walFileName WAL file name
      * @return WAL file name
      */
@@ -192,6 +196,7 @@ public final class BackupUtils {
 
     /**
      * Returns WAL file name
+     *
      * @param p WAL file path
      * @return WAL file name
      */
@@ -201,7 +206,8 @@ public final class BackupUtils {
 
     /**
      * Get the total length of files under the given directory recursively.
-     * @param fs The hadoop file system
+     *
+     * @param fs  The hadoop file system
      * @param dir The target directory
      * @return the total length of files
      * @throws IOException exception
@@ -223,7 +229,8 @@ public final class BackupUtils {
 
     /**
      * Get list of all old WAL files (WALs and archive)
-     * @param c configuration
+     *
+     * @param c                configuration
      * @param hostTimestampMap {host,timestamp} map
      * @return list of WAL files
      * @throws IOException exception
@@ -273,8 +280,9 @@ public final class BackupUtils {
 
     /**
      * Check whether the backup path exist
+     *
      * @param backupStr backup
-     * @param conf configuration
+     * @param conf      configuration
      * @return Yes if path exists
      * @throws IOException exception
      */
@@ -294,8 +302,9 @@ public final class BackupUtils {
 
     /**
      * Check target path first, confirm it doesn't exist before backup
+     *
      * @param backupRootPath backup destination path
-     * @param conf configuration
+     * @param conf           configuration
      * @throws IOException exception
      */
     public static void checkTargetDir(String backupRootPath, Configuration conf) throws IOException {
@@ -325,6 +334,7 @@ public final class BackupUtils {
 
     /**
      * Get the min value for all the Values a map.
+     *
      * @param map map
      * @return the min value
      */
@@ -341,6 +351,7 @@ public final class BackupUtils {
 
     /**
      * Parses host name:port from archived WAL path
+     *
      * @param p path
      * @return host name
      */
@@ -358,6 +369,7 @@ public final class BackupUtils {
 
     /**
      * Given the log file, parse the timestamp from the file name. The timestamp is the last number.
+     *
      * @param p a path to the log file
      * @return the timestamp
      * @throws IOException exception
@@ -395,8 +407,9 @@ public final class BackupUtils {
 
     /**
      * Clean up directories which are generated when DistCp copying hlogs
+     *
      * @param backupInfo backup info
-     * @param conf configuration
+     * @param conf       configuration
      * @throws IOException exception
      */
     private static void cleanupHLogDir(BackupInfo backupInfo, Configuration conf) throws IOException {
@@ -458,9 +471,10 @@ public final class BackupUtils {
      * Given the backup root dir, backup id and the table name, return the backup image location,
      * which is also where the backup manifest file is. return value look like:
      * "hdfs://backup.hbase.org:9000/user/biadmin/backup1/backup_1396650096738/default/t1_dn/"
+     *
      * @param backupRootDir backup root directory
-     * @param backupId backup id
-     * @param tableName table name
+     * @param backupId      backup id
+     * @param tableName     table name
      * @return backupPath String for the particular table
      */
     public static String getTableBackupDir(String backupRootDir, String backupId,
@@ -472,6 +486,7 @@ public final class BackupUtils {
 
     /**
      * Sort history list by start time in descending order.
+     *
      * @param historyList history list
      * @return sorted list of BackupCompleteData
      */
@@ -492,8 +507,9 @@ public final class BackupUtils {
      * Calls fs.listStatus() and treats FileNotFoundException as non-fatal This accommodates
      * differences between hadoop versions, where hadoop 1 does not throw a FileNotFoundException, and
      * return an empty FileStatus[] while Hadoop 2 will throw FileNotFoundException.
-     * @param fs file system
-     * @param dir directory
+     *
+     * @param fs     file system
+     * @param dir    directory
      * @param filter path filter
      * @return null if dir is empty or doesn't exist, otherwise FileStatus array
      */
@@ -522,6 +538,7 @@ public final class BackupUtils {
      * <code>hdfs://example.org:9000/hbase_trunk/TestTable/compaction.dir</code>, this method returns
      * <code>/hbase_trunk/TestTable/compaction.dir</code>. This method is useful if you want to print
      * out a Path without qualifying Filesystem instance.
+     *
      * @param p file system Path whose 'path' component we are to return.
      * @return Path portion of the Filesystem
      */
@@ -532,8 +549,9 @@ public final class BackupUtils {
     /**
      * Given the backup root dir and the backup id, return the log file location for an incremental
      * backup.
+     *
      * @param backupRootDir backup root directory
-     * @param backupId backup id
+     * @param backupId      backup id
      * @return logBackupDir: ".../user/biadmin/backup1/WALs/backup_1396650096738"
      */
     public static String getLogBackupDir(String backupRootDir, String backupId) {
@@ -559,7 +577,9 @@ public final class BackupUtils {
             String backupId = lfs.getPath().getName();
             try {
                 BackupInfo info = loadBackupInfo(backupRootPath, backupId, fs);
-                infos.add(info);
+                if (info != null) {
+                    infos.add(info);
+                }
             } catch (IOException e) {
                 LOG.error("Can not load backup info from: " + lfs.getPath(), e);
             }
@@ -627,12 +647,13 @@ public final class BackupUtils {
 
     /**
      * Create restore request.
+     *
      * @param backupRootDir backup root dir
-     * @param backupId backup id
-     * @param check check only
-     * @param fromTables table list from
-     * @param toTables table list to
-     * @param isOverwrite overwrite data
+     * @param backupId      backup id
+     * @param check         check only
+     * @param fromTables    table list from
+     * @param toTables      table list to
+     * @param isOverwrite   overwrite data
      * @return request obkect
      */
     public static RestoreRequest createRestoreRequest(String backupRootDir, String backupId,

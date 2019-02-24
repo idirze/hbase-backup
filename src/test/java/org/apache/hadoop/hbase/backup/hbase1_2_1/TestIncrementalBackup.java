@@ -55,7 +55,7 @@ public class TestIncrementalBackup extends TestBackupBase {
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        provider = "multiwal";
+        provider = "defaultProvider";
         List<Object[]> params = new ArrayList<>();
         params.add(new Object[]{Boolean.TRUE});
         return params;

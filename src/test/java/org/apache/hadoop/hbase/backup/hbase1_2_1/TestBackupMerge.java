@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,91 +38,90 @@ import static org.junit.Assert.assertTrue;
 @Category(LargeTests.class)
 public class TestBackupMerge extends TestBackupBase {
 
-  @ClassRule
-  public static final HBaseClassTestRule CLASS_RULE =
-      HBaseClassTestRule.forClass(TestBackupMerge.class);
+    @ClassRule
+    public static final HBaseClassTestRule CLASS_RULE =
+            HBaseClassTestRule.forClass(TestBackupMerge.class);
 
-  private static final Logger LOG =
-      LoggerFactory.getLogger(TestBackupMerge.class);
-
-
-
-  @Test
-  public void TestIncBackupMergeRestore() throws Exception {
-    int ADD_ROWS = 99;
-    // #1 - create full backup for all tables
-    LOG.info("create full backup image for all tables");
-
-    List<TableName> tables = Lists.newArrayList(table1, table2);
-    // Set custom Merge Job implementation
+    private static final Logger LOG =
+            LoggerFactory.getLogger(TestBackupMerge.class);
 
 
-    Connection conn = ConnectionFactory.createConnection(conf1);
+    @Test
+    public void TestIncBackupMergeRestore() throws Exception {
+        int ADD_ROWS = 99;
+        // #1 - create full backup for all tables
+        LOG.info("create full backup image for all tables");
 
-    HBaseAdmin admin = (HBaseAdmin) conn.getAdmin();
-    BackupAdminImpl client = new BackupAdminImpl(conn);
+        List<TableName> tables = Lists.newArrayList(table1, table2);
+        // Set custom Merge Job implementation
 
-    BackupRequest request = createBackupRequest(BackupType.FULL, tables, BACKUP_ROOT_DIR);
-    String backupIdFull = client.backupTables(request);
 
-    assertTrue(checkSucceeded(backupIdFull));
+        Connection conn = ConnectionFactory.createConnection(conf1);
 
-    // #2 - insert some data to table1
-    HTable t1 = insertIntoTable(conn, table1, famName, 1, ADD_ROWS);
-    LOG.debug("writing " + ADD_ROWS + " rows to " + table1);
+        HBaseAdmin admin = (HBaseAdmin) conn.getAdmin();
+        BackupAdminImpl client = new BackupAdminImpl(conn);
 
-    Assert.assertEquals(TEST_UTIL.countRows(t1), NB_ROWS_IN_BATCH + ADD_ROWS);
-    t1.close();
-    LOG.debug("written " + ADD_ROWS + " rows to " + table1);
+        BackupRequest request = createBackupRequest(BackupType.FULL, tables, BACKUP_ROOT_DIR);
+        String backupIdFull = client.backupTables(request);
 
-    HTable t2 = insertIntoTable(conn, table2, famName, 1, ADD_ROWS);
+        assertTrue(checkSucceeded(backupIdFull));
 
-    Assert.assertEquals(TEST_UTIL.countRows(t2), NB_ROWS_IN_BATCH + ADD_ROWS);
-    t2.close();
-    LOG.debug("written " + ADD_ROWS + " rows to " + table2);
+        // #2 - insert some data to table1
+        HTable t1 = insertIntoTable(conn, table1, famName, 1, ADD_ROWS);
+        LOG.debug("writing " + ADD_ROWS + " rows to " + table1);
 
-    // #3 - incremental backup for multiple tables
-    tables = Lists.newArrayList(table1, table2);
-    request = createBackupRequest(BackupType.INCREMENTAL, tables, BACKUP_ROOT_DIR);
-    String backupIdIncMultiple = client.backupTables(request);
+        Assert.assertEquals(TEST_UTIL.countRows(t1), NB_ROWS_IN_BATCH + ADD_ROWS);
+        t1.close();
+        LOG.debug("written " + ADD_ROWS + " rows to " + table1);
 
-    assertTrue(checkSucceeded(backupIdIncMultiple));
+        HTable t2 = insertIntoTable(conn, table2, famName, 1, ADD_ROWS);
 
-    t1 = insertIntoTable(conn, table1, famName, 2, ADD_ROWS);
-    t1.close();
+        Assert.assertEquals(TEST_UTIL.countRows(t2), NB_ROWS_IN_BATCH + ADD_ROWS);
+        t2.close();
+        LOG.debug("written " + ADD_ROWS + " rows to " + table2);
 
-    t2 = insertIntoTable(conn, table2, famName, 2, ADD_ROWS);
-    t2.close();
+        // #3 - incremental backup for multiple tables
+        tables = Lists.newArrayList(table1, table2);
+        request = createBackupRequest(BackupType.INCREMENTAL, tables, BACKUP_ROOT_DIR);
+        String backupIdIncMultiple = client.backupTables(request);
 
-    // #3 - incremental backup for multiple tables
-    request = createBackupRequest(BackupType.INCREMENTAL, tables, BACKUP_ROOT_DIR);
-    String backupIdIncMultiple2 = client.backupTables(request);
-    assertTrue(checkSucceeded(backupIdIncMultiple2));
+        assertTrue(checkSucceeded(backupIdIncMultiple));
 
-    try (BackupAdmin bAdmin = new BackupAdminImpl(conn)) {
-      String[] backups = new String[] { backupIdIncMultiple, backupIdIncMultiple2 };
-      bAdmin.mergeBackups(backups);
+        t1 = insertIntoTable(conn, table1, famName, 2, ADD_ROWS);
+        t1.close();
+
+        t2 = insertIntoTable(conn, table2, famName, 2, ADD_ROWS);
+        t2.close();
+
+        // #3 - incremental backup for multiple tables
+        request = createBackupRequest(BackupType.INCREMENTAL, tables, BACKUP_ROOT_DIR);
+        String backupIdIncMultiple2 = client.backupTables(request);
+        assertTrue(checkSucceeded(backupIdIncMultiple2));
+
+        try (BackupAdmin bAdmin = new BackupAdminImpl(conn)) {
+            String[] backups = new String[]{backupIdIncMultiple, backupIdIncMultiple2};
+            bAdmin.mergeBackups(backups);
+        }
+
+        // #6 - restore incremental backup for multiple tables, with overwrite
+        TableName[] tablesRestoreIncMultiple = new TableName[]{table1, table2};
+        TableName[] tablesMapIncMultiple = new TableName[]{table1_restore, table2_restore};
+        client.restore(BackupUtils.createRestoreRequest(BACKUP_ROOT_DIR, backupIdIncMultiple2, false,
+                tablesRestoreIncMultiple, tablesMapIncMultiple, true));
+
+        Table hTable = conn.getTable(table1_restore);
+        LOG.debug("After incremental restore: " + hTable.getTableDescriptor());
+        int countRows = TEST_UTIL.countRows(hTable, famName);
+        LOG.debug("f1 has " + countRows + " rows");
+        Assert.assertEquals(NB_ROWS_IN_BATCH + 2 * ADD_ROWS, countRows);
+
+        hTable.close();
+
+        hTable = conn.getTable(table2_restore);
+        Assert.assertEquals(TEST_UTIL.countRows(hTable), NB_ROWS_IN_BATCH + 2 * ADD_ROWS);
+        hTable.close();
+
+        admin.close();
+        conn.close();
     }
-
-    // #6 - restore incremental backup for multiple tables, with overwrite
-    TableName[] tablesRestoreIncMultiple = new TableName[] { table1, table2 };
-    TableName[] tablesMapIncMultiple = new TableName[] { table1_restore, table2_restore };
-    client.restore(BackupUtils.createRestoreRequest(BACKUP_ROOT_DIR, backupIdIncMultiple2, false,
-      tablesRestoreIncMultiple, tablesMapIncMultiple, true));
-
-    Table hTable = conn.getTable(table1_restore);
-    LOG.debug("After incremental restore: " + hTable.getTableDescriptor());
-    int countRows = TEST_UTIL.countRows(hTable, famName);
-    LOG.debug("f1 has " + countRows + " rows");
-    Assert.assertEquals(NB_ROWS_IN_BATCH + 2 * ADD_ROWS, countRows);
-
-    hTable.close();
-
-    hTable = conn.getTable(table2_restore);
-    Assert.assertEquals(TEST_UTIL.countRows(hTable), NB_ROWS_IN_BATCH + 2 * ADD_ROWS);
-    hTable.close();
-
-    admin.close();
-    conn.close();
-  }
 }

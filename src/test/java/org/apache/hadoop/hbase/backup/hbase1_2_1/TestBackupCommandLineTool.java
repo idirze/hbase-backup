@@ -33,6 +33,7 @@ import java.io.PrintStream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+
 @Category(SmallTests.class)
 public class TestBackupCommandLineTool {
 

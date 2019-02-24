@@ -41,6 +41,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
 
+import static org.apache.hadoop.hbase.backup.hbase1_2_1.BackupInfo.BackupState.ANY;
+
 /**
  * Handles backup requests, creates backup info records in backup system table to
  * keep track of backup sessions, dispatches backup request.
@@ -291,7 +293,9 @@ public class BackupManager implements Closeable {
 
             BackupImage image = builder.withBackupId(backup.getBackupId()).withType(backup.getType())
                     .withRootDir(backup.getBackupRootDir()).withTableList(backup.getTableNames())
-                    .withStartTime(backup.getStartTs()).withCompleteTime(backup.getCompleteTs()).build();
+                    .withStartTime(backup.getStartTs())
+                    .withCompleteTime(backup.getCompleteTs())
+                    .build();
 
             // add the full backup image as an ancestor until the last incremental backup
             if (backup.getType().equals(BackupType.FULL)) {

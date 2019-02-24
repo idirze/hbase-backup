@@ -542,7 +542,6 @@ public final class BackupCommands {
     }
 
     public static class DeleteCommand extends Command {
-
         DeleteCommand(Configuration conf, CommandLine cmdline) {
             super(conf);
             this.cmdline = cmdline;
@@ -556,16 +555,67 @@ public final class BackupCommands {
         @Override
         public void execute() throws IOException {
 
-            if (cmdline == null || cmdline.getArgs() == null || cmdline.getArgs().length < 2) {
+            if (cmdline == null || cmdline.getArgs() == null || cmdline.getArgs().length < 1) {
                 printUsage();
                 throw new IOException(INCORRECT_USAGE);
             }
 
+            if (!cmdline.hasOption(OPTION_KEEP) && !cmdline.hasOption(OPTION_LIST)) {
+                printUsage();
+                throw new IOException(INCORRECT_USAGE);
+            }
             super.execute();
+            if (cmdline.hasOption(OPTION_KEEP)) {
+                executeDeleteOlderThan(cmdline);
+            } else if (cmdline.hasOption(OPTION_LIST)) {
+                executeDeleteListOfBackups(cmdline);
+            }
+        }
 
-            String[] args = cmdline.getArgs();
-            String[] backupIds = new String[args.length - 1];
-            System.arraycopy(args, 1, backupIds, 0, backupIds.length);
+        private void executeDeleteOlderThan(CommandLine cmdline) throws IOException {
+            String value = cmdline.getOptionValue(OPTION_KEEP);
+            int days = 0;
+            try {
+                days = Integer.parseInt(value);
+            } catch (NumberFormatException e) {
+                throw new IOException(value + " is not an integer number");
+            }
+            final long fdays = days;
+            BackupInfo.Filter dateFilter = new BackupInfo.Filter() {
+                @Override
+                public boolean apply(BackupInfo info) {
+                    long currentTime = EnvironmentEdgeManager.currentTime();
+                    long maxTsToDelete = currentTime - fdays * 24 * 3600 * 1000;
+                    return info.getCompleteTs() <= maxTsToDelete;
+                }
+            };
+            List<BackupInfo> history = null;
+            try (final BackupSystemTable sysTable = new BackupSystemTable(conn);
+                 BackupAdminImpl admin = new BackupAdminImpl(conn)) {
+                history = sysTable.getBackupHistory(-1, dateFilter);
+                String[] backupIds = convertToBackupIds(history);
+                int deleted = admin.deleteBackups(backupIds);
+                System.out.println("Deleted " + deleted + " backups. Total older than " + days + " days: "
+                        + backupIds.length);
+            } catch (IOException e) {
+                System.err.println("Delete command FAILED. Please run backup repair tool to restore backup "
+                        + "system integrity");
+                throw e;
+            }
+        }
+
+        private String[] convertToBackupIds(List<BackupInfo> history) {
+            String[] ids = new String[history.size()];
+            for (int i = 0; i < ids.length; i++) {
+                ids[i] = history.get(i).getBackupId();
+            }
+            return ids;
+        }
+
+        private void executeDeleteListOfBackups(CommandLine cmdline) throws IOException {
+            String value = cmdline.getOptionValue(OPTION_LIST);
+            String[] backupIds = value.split(",");
+
             try (BackupAdminImpl admin = new BackupAdminImpl(conn)) {
                 int deleted = admin.deleteBackups(backupIds);
                 System.out.println("Deleted " + deleted + " backups. Total requested: " + backupIds.length);
@@ -580,6 +630,17 @@ public final class BackupCommands {
         @Override
         protected void printUsage() {
             System.out.println(DELETE_CMD_USAGE);
+            Options options = new Options();
+            options.addOption(OPTION_KEEP, true, OPTION_KEEP_DESC);
+            options.addOption(OPTION_LIST, true, OPTION_BACKUP_LIST_DESC);
+
+            HelpFormatter helpFormatter = new HelpFormatter();
+            helpFormatter.setLeftPadding(2);
+            helpFormatter.setDescPadding(8);
+            helpFormatter.setWidth(100);
+            helpFormatter.setSyntaxPrefix("Options:");
+            helpFormatter.printHelp(" ", null, options, USAGE_FOOTER);
+
         }
     }
 

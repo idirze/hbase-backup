@@ -50,6 +50,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 
+import static org.apache.hadoop.hbase.backup.hbase1_2_1.util.SafeRestoreTool.snapshotName;
+
 /**
  * A collection for methods used by multiple classes to restore HBase tables.
  */
@@ -170,7 +172,7 @@ public class RestoreTool {
             for (int i = 0; i < tableNames.length; i++) {
                 TableName tableName = tableNames[i];
                 HTableDescriptor tableDescriptor = getTableDescriptor(fileSys, tableName, incrBackupId);
-                LOG.debug("Found descriptor " + tableDescriptor + " through " + incrBackupId);
+                LOG.info("Found descriptor " + tableDescriptor + " through " + incrBackupId);
 
                 TableName newTableName = newTableNames[i];
                 HTableDescriptor newTableDescriptor = admin.getTableDescriptor(newTableName);
@@ -357,10 +359,19 @@ public class RestoreTool {
             Path[] paths = new Path[regionPathList.size()];
             regionPathList.toArray(paths);
             restoreService.run(paths, new TableName[]{tableName}, new TableName[]{newTableName}, true);
-
+            SafeRestoreTool.deleteSnapshot(conn, newTableName, true);
         } catch (Exception e) {
-            LOG.error(e.toString(), e);
-            throw new IllegalStateException("Cannot restore hbase table", e);
+
+            LOG.error("Unable to restore table: " + tableName.getNameAsString() + " from backupId: " + backupId + ", Rollbacking restore");
+
+            try {
+                SafeRestoreTool.restoreSnapshot(conn, newTableName);
+                SafeRestoreTool.deleteSnapshot(conn, newTableName);
+            } catch (Exception e1) {
+                LOG.error("Rollback: Failed to restore table: " + tableName.getNameAsString() + " from the snapshot: " + snapshotName(tableName), e);
+            }
+
+            throw new IllegalStateException("Cannot restore hbase table: " + tableName.getNameAsString() + " from backupId: " + backupId, e);
         }
     }
 
@@ -483,7 +494,7 @@ public class RestoreTool {
                     LOG.info("Truncating exising target table '" + targetTableName
                             + "', preserving region splits");
 
-                    SafeRestoreTool.recreateSnapshot(conn, tableName);
+                    SafeRestoreTool.snapshot(conn, targetTableName);
 
                     admin.disableTable(targetTableName);
                     admin.truncateTable(targetTableName, true);

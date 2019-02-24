@@ -137,10 +137,12 @@ public class BackupDriver extends AbstractHBaseTool {
         addOptNoArg(OPTION_DEBUG, OPTION_DEBUG_DESC);
         addOptWithArg(OPTION_TABLE, OPTION_TABLE_DESC);
         addOptWithArg(OPTION_BANDWIDTH, OPTION_BANDWIDTH_DESC);
+        addOptWithArg(OPTION_LIST, OPTION_BACKUP_LIST_DESC);
         addOptWithArg(OPTION_WORKERS, OPTION_WORKERS_DESC);
         addOptWithArg(OPTION_RECORD_NUMBER, OPTION_RECORD_NUMBER_DESC);
         addOptWithArg(OPTION_SET, OPTION_SET_DESC);
         addOptWithArg(OPTION_PATH, OPTION_PATH_DESC);
+        addOptWithArg(OPTION_KEEP, OPTION_KEEP_DESC);
         addOptWithArg(OPTION_YARN_QUEUE_NAME, OPTION_YARN_QUEUE_NAME_DESC);
 
     }

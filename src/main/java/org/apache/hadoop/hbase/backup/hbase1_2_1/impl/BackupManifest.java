@@ -43,7 +43,6 @@ import java.util.Map.Entry;
  * as manifest file together with data. So that each backup image will contain all the info needed
  * for restore. BackupManifest is a storage container for BackupImage.
  * It is responsible for storing/reading backup image data and has some additional utility methods.
- *
  */
 @InterfaceAudience.Private
 public class BackupManifest {
@@ -109,6 +108,7 @@ public class BackupManifest {
         private List<TableName> tableList;
         private long startTs;
         private long completeTs;
+
         private ArrayList<BackupImage> ancestors;
         private HashMap<TableName, HashMap<String, Long>> incrTimeRanges;
 
@@ -135,6 +135,7 @@ public class BackupManifest {
             String rootDir = im.getBackupRootDir();
             long startTs = im.getStartTs();
             long completeTs = im.getCompleteTs();
+
             List<TableProtos.TableName> tableListList = im.getTableListList();
             List<TableName> tableList = new ArrayList<>();
             for (TableProtos.TableName tn : tableListList) {
@@ -161,6 +162,7 @@ public class BackupManifest {
             builder.setCompleteTs(completeTs);
             builder.setStartTs(startTs);
             builder.setBackupRootDir(rootDir);
+
             if (type == BackupType.FULL) {
                 builder.setBackupType(BackupProtos.BackupType.FULL);
             } else {
@@ -369,6 +371,7 @@ public class BackupManifest {
 
     /**
      * Construct manifest for a ongoing backup.
+     *
      * @param backup The ongoing backup info
      */
     public BackupManifest(BackupInfo backup) {
@@ -377,11 +380,14 @@ public class BackupManifest {
         this.backupImage =
                 builder.withBackupId(backup.getBackupId()).withType(backup.getType())
                         .withRootDir(backup.getBackupRootDir()).withTableList(backup.getTableNames())
-                        .withStartTime(backup.getStartTs()).withCompleteTime(backup.getCompleteTs()).build();
+                        .withStartTime(backup.getStartTs())
+                        .withCompleteTime(backup.getCompleteTs())
+                        .build();
     }
 
     /**
      * Construct a table level manifest for a backup of the named table.
+     *
      * @param backup The ongoing backup session info
      */
     public BackupManifest(BackupInfo backup, TableName table) {
@@ -392,13 +398,15 @@ public class BackupManifest {
         this.backupImage =
                 builder.withBackupId(backup.getBackupId()).withType(backup.getType())
                         .withRootDir(backup.getBackupRootDir()).withTableList(tables)
-                        .withStartTime(backup.getStartTs()).withCompleteTime(backup.getCompleteTs()).build();
+                        .withStartTime(backup.getStartTs())
+                        .withCompleteTime(backup.getCompleteTs())
+                        .build();
     }
 
     /**
      * Construct manifest from a backup directory.
      *
-     * @param conf configuration
+     * @param conf       configuration
      * @param backupPath backup path
      * @throws IOException if constructing the manifest from the backup directory fails
      */
@@ -409,7 +417,8 @@ public class BackupManifest {
 
     /**
      * Construct manifest from a backup directory.
-     * @param fs the FileSystem
+     *
+     * @param fs         the FileSystem
      * @param backupPath backup path
      * @throws BackupException exception
      */
@@ -464,6 +473,7 @@ public class BackupManifest {
 
     /**
      * Get the table set of this image.
+     *
      * @return The table set list
      */
     public List<TableName> getTableList() {
@@ -472,6 +482,7 @@ public class BackupManifest {
 
     /**
      * TODO: fix it. Persist the manifest file.
+     *
      * @throws IOException IOException when storing the manifest file.
      */
 
@@ -493,6 +504,7 @@ public class BackupManifest {
 
     /**
      * Get this backup image.
+     *
      * @return the backup image.
      */
     public BackupImage getBackupImage() {
@@ -501,6 +513,7 @@ public class BackupManifest {
 
     /**
      * Add dependent backup image for this backup.
+     *
      * @param image The direct dependent backup image
      */
     public void addDependentImage(BackupImage image) {
@@ -509,6 +522,7 @@ public class BackupManifest {
 
     /**
      * Set the incremental timestamp map directly.
+     *
      * @param incrTimestampMap timestamp map
      */
     public void setIncrTimestampMap(HashMap<TableName, HashMap<String, Long>> incrTimestampMap) {
@@ -521,6 +535,7 @@ public class BackupManifest {
 
     /**
      * Get the image list of this backup for restore in time order.
+     *
      * @param reverse If true, then output in reverse order, otherwise in time order from old to new
      * @return the backup image list for restore in time order
      */
@@ -537,6 +552,7 @@ public class BackupManifest {
     /**
      * Get the dependent image list for a specific table of this backup in time order from old to new
      * if want to restore to this backup image level.
+     *
      * @param table table
      * @return the backup image list for a table in time order
      */
@@ -558,9 +574,10 @@ public class BackupManifest {
     /**
      * Get the full dependent image list in the whole dependency scope for a specific table of this
      * backup in time order from old to new.
+     *
      * @param table table
      * @return the full backup image list for a table in time order in the whole scope of the
-     *         dependency of this image
+     * dependency of this image
      */
     public ArrayList<BackupImage> getAllDependentListByTable(TableName table) {
         ArrayList<BackupImage> tableImageList = new ArrayList<>();
@@ -575,6 +592,7 @@ public class BackupManifest {
 
     /**
      * Check whether backup image1 could cover backup image2 or not.
+     *
      * @param image1 backup image 1
      * @param image2 backup image 2
      * @return true if image1 can cover image2, otherwise false
@@ -612,8 +630,9 @@ public class BackupManifest {
 
     /**
      * Check whether backup image set could cover a backup image or not.
+     *
      * @param fullImages The backup image set
-     * @param image The target backup image
+     * @param image      The target backup image
      * @return true if fullImages can cover image, otherwise false
      */
     public static boolean canCoverImage(ArrayList<BackupImage> fullImages, BackupImage image) {
@@ -666,6 +685,9 @@ public class BackupManifest {
             info.setHLogTargetDir(BackupUtils.getLogBackupDir(backupImage.getRootDir(),
                     backupImage.getBackupId()));
         }
+
+        info.setCompleteTs(backupImage.getCompleteTs());
+
         return info;
     }
 }

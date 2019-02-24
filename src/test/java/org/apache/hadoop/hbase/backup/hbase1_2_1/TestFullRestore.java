@@ -59,6 +59,7 @@ public class TestFullRestore extends TestBackupBase {
         String backupId = fullTableBackup(tables);
         assertTrue(checkSucceeded(backupId));
 
+
         LOG.info("backup complete");
 
         TableName[] tableset = new TableName[]{table1};

@@ -147,8 +147,10 @@ public class RestoreTablesClient {
             LOG.info("Restoring '" + sTable + "' to '" + tTable + "' from full" + " backup image "
                     + tableBackupPath.toString());
             conf.set(JOB_NAME_CONF_KEY, "Full_Restore-" + backupId + "-" + tTable);
+
             restoreTool.fullRestoreTable(conn, tableBackupPath, sTable, tTable, truncateIfExists,
                     lastIncrBackupId);
+
             conf.unset(JOB_NAME_CONF_KEY);
         } else { // incremental Backup
             throw new IOException("Unexpected backup type " + image.getType());
